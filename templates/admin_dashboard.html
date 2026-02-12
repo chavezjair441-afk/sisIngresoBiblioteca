@@ -5,6 +5,10 @@
         <h2 class="text-lg font-bold text-slate-700">Resumen General</h2>
         
         <div class="flex gap-2">
+            <button onclick="window.location.reload()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg text-xs font-bold uppercase shadow-sm flex items-center gap-2 transition-colors">
+                <i class="ph ph-arrows-clockwise text-lg"></i>
+            </button>
+
             <a href="/admin/reporte_hoy" class="flex items-center gap-2 bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-bold uppercase hover:bg-emerald-500">
                 <i class="ph ph-file-xls text-lg"></i> Reporte Hoy
             </a>
@@ -39,11 +43,15 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-80">
                 <h3 class="text-sm font-bold text-slate-700 mb-4">Afluencia por Hora</h3>
-                <div class="h-64"><canvas id="chartHoras"></canvas></div>
+                <div class="relative h-64 w-full">
+                    <canvas id="chartHoras"></canvas>
+                </div>
             </div>
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-80">
                 <h3 class="text-sm font-bold text-slate-700 mb-4">Top Orígenes</h3>
-                <div class="h-64"><canvas id="chartEscuelas"></canvas></div>
+                <div class="relative h-64 w-full">
+                    <canvas id="chartEscuelas"></canvas>
+                </div>
             </div>
         </div>
         
@@ -71,8 +79,8 @@
         <div class="bg-white p-6 rounded-lg w-96">
             <h3 class="font-bold mb-4">Descargar Reporte</h3>
             <form id="form-fechas">
-                <input type="date" id="fecha-inicio" class="border w-full mb-2 p-2">
-                <input type="date" id="fecha-fin" class="border w-full mb-4 p-2">
+                <input type="date" id="fecha-inicio" class="border w-full mb-2 p-2" required>
+                <input type="date" id="fecha-fin" class="border w-full mb-4 p-2" required>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="document.getElementById('modal-fechas').classList.add('hidden')" class="text-slate-500">Cancelar</button>
                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Descargar</button>
@@ -83,18 +91,76 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-    // PEGA AQUÍ TUS SCRIPTS DE CHART.JS QUE YA TENÍAS
-    const rawLabelsHoras = '{{ labels_horas | tojson | safe }}';
-    const rawDataHoras = '{{ data_horas | tojson | safe }}';
-    // ... resto del script de gráficos ...
-    
-    // Script de Fechas
+    // DATOS DE FLASK
+    const labelsHoras = {{ labels_horas | tojson }};
+    const dataHoras = {{ data_horas | tojson }};
+    const labelsOrigenes = {{ labels_escuelas | tojson }};
+    const dataOrigenes = {{ data_escuelas | tojson }};
+
+    // GRÁFICO HORAS
+    const ctxHoras = document.getElementById('chartHoras');
+    if (ctxHoras) {
+        new Chart(ctxHoras, {
+            type: 'line',
+            data: {
+                labels: labelsHoras,
+                datasets: [{
+                    label: 'Ingresos',
+                    data: dataHoras,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    }
+
+    // GRÁFICO ORÍGENES
+    const ctxEscuelas = document.getElementById('chartEscuelas');
+    if (ctxEscuelas) {
+        new Chart(ctxEscuelas, {
+            type: 'bar',
+            data: {
+                labels: labelsOrigenes,
+                datasets: [{
+                    label: 'Cantidad',
+                    data: dataOrigenes,
+                    backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#f43f5e'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { ticks: { autoSkip: false } } }
+            }
+        });
+    }
+
+    // REPORTE FECHAS
     document.getElementById('form-fechas').addEventListener('submit', function(e) {
         e.preventDefault();
         const ini = document.getElementById('fecha-inicio').value;
         const fin = document.getElementById('fecha-fin').value;
-        window.location.href = `/admin/reporte_rango?inicio=${ini}&fin=${fin}`;
+        if(ini && fin) {
+            window.location.href = `/admin/reporte_rango?inicio=${ini}&fin=${fin}`;
+            document.getElementById('modal-fechas').classList.add('hidden');
+        } else {
+            alert("Selecciona ambas fechas.");
+        }
     });
 </script>
 {% endblock %}

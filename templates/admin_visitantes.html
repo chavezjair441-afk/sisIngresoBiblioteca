@@ -3,9 +3,10 @@
 {% block content %}
     <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
         <h2 class="text-lg font-bold text-slate-700">Gestión de Visitantes</h2>
+        
         <div class="flex gap-2">
-            <button onclick="document.getElementById('modal-visitante').classList.remove('hidden')" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow flex items-center gap-2">
-                <i class="ph ph-plus"></i> Nuevo Visitante
+            <button onclick="window.location.reload()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-colors">
+                <i class="ph ph-arrows-clockwise text-lg"></i> Actualizar
             </button>
             <button onclick="document.getElementById('modal-upload-vis').classList.remove('hidden')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow flex items-center gap-2">
                 <i class="ph ph-file-csv"></i> Importar Excel
@@ -13,47 +14,128 @@
         </div>
     </header>
 
-    <div class="p-8">
-        <div class="bg-white rounded-xl shadow border border-slate-200 p-8 text-center">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 text-orange-500 mb-4">
-                <i class="ph ph-users-three text-3xl"></i>
+    <div class="p-8 max-w-7xl mx-auto">
+        
+        <div class="bg-white rounded-xl shadow border border-slate-200 p-6 mb-8">
+            <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                    <i class="ph ph-user-plus text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Registrar Nuevo Visitante</h3>
+                    <p class="text-sm text-slate-500">Ingresa los datos del externo manualmente.</p>
+                </div>
             </div>
-            <h3 class="text-xl font-bold text-slate-800">Base de Datos de Externos</h3>
-            <p class="text-slate-500 mt-2">Usa los botones superiores para registrar personas manualmente o por Excel.</p>
-        </div>
-    </div>
 
-    <div id="modal-visitante" class="fixed inset-0 bg-black/60 hidden backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-xl w-96 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4">Registrar Externo</h3>
-            <form id="form-visitante" class="space-y-3">
-                <input id="vis-dni" type="text" placeholder="DNI" class="w-full border p-2 rounded" required>
-                <input id="vis-nombre" type="text" placeholder="Nombre Completo" class="w-full border p-2 rounded" required>
-                <input id="vis-inst" type="text" placeholder="Institución" class="w-full border p-2 rounded">
-                <div class="flex justify-end gap-2 mt-4">
-                    <button type="button" onclick="document.getElementById('modal-visitante').classList.add('hidden')" class="px-4 py-2 text-slate-500">Cancelar</button>
-                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded font-bold">Guardar</button>
+            <form id="form-visitante">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">DNI *</label>
+                        <input id="vis-dni" type="text" placeholder="DNI" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Nombre Completo *</label>
+                        <input id="vis-nombre" type="text" placeholder="Nombre" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Institución</label>
+                        <input id="vis-inst" type="text" placeholder="Origen" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Correo</label>
+                        <input id="vis-correo" type="email" placeholder="@" class="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none">
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-bold shadow transition-colors flex items-center gap-2 text-sm">
+                        <i class="ph ph-check-circle"></i> Guardar Nuevo
+                    </button>
                 </div>
             </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Directorio de Visitantes</h3>
+                <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">
+                    {{ visitantes|length }} Registrados
+                </span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 text-slate-700 uppercase font-bold text-xs">
+                        <tr>
+                            <th class="px-6 py-3 w-1/4">Nombre</th>
+                            <th class="px-6 py-3 w-1/6">DNI</th>
+                            <th class="px-6 py-3 w-1/4">Institución</th>
+                            <th class="px-6 py-3 w-1/4">Correo</th>
+                            <th class="px-6 py-3 text-right w-24">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for v in visitantes %}
+                        <tr id="fila-{{v[0]}}" class="hover:bg-slate-50 transition-colors h-16">
+                            
+                            <td class="px-6 py-3">
+                                <span id="ver-nom-{{v[0]}}" class="font-medium text-slate-900 block truncate">{{ v[1] }}</span>
+                                <input id="edit-nom-{{v[0]}}" type="text" value="{{ v[1] }}" class="hidden w-full border border-blue-400 rounded px-2 py-1 text-slate-900 outline-none bg-blue-50 focus:ring-2 focus:ring-blue-200">
+                            </td>
+
+                            <td class="px-6 py-3">
+                                <span id="ver-dni-{{v[0]}}" class="font-mono text-orange-600 block">{{ v[2] }}</span>
+                                <input id="edit-dni-{{v[0]}}" type="text" value="{{ v[2] }}" class="hidden w-full border border-blue-400 rounded px-2 py-1 font-mono text-slate-900 outline-none bg-blue-50 focus:ring-2 focus:ring-blue-200">
+                            </td>
+
+                            <td class="px-6 py-3">
+                                <span id="ver-inst-{{v[0]}}" class="block truncate">
+                                    {% if v[3] == 'Sin Institución' %}<em class="text-slate-400">{{v[3]}}</em>{% else %}{{v[3]}}{% endif %}
+                                </span>
+                                <input id="edit-inst-{{v[0]}}" type="text" value="{{ v[3] }}" class="hidden w-full border border-blue-400 rounded px-2 py-1 text-slate-900 outline-none bg-blue-50 focus:ring-2 focus:ring-blue-200">
+                            </td>
+
+                            <td class="px-6 py-3">
+                                <span id="ver-correo-{{v[0]}}" class="text-slate-500 block truncate">{{ v[4] }}</span>
+                                <input id="edit-correo-{{v[0]}}" type="email" value="{{ v[4] }}" class="hidden w-full border border-blue-400 rounded px-2 py-1 text-slate-900 outline-none bg-blue-50 focus:ring-2 focus:ring-blue-200">
+                            </td>
+
+                            <td class="px-6 py-3 text-right">
+                                <button id="btn-editar-{{v[0]}}" onclick="activarEdicion('{{v[0]}}')" 
+                                        class="text-slate-400 hover:text-blue-600 bg-white border border-slate-200 hover:border-blue-300 px-3 py-1 rounded shadow-sm transition-all text-xs font-bold inline-flex items-center gap-1">
+                                    <i class="ph ph-pencil-simple"></i> Editar
+                                </button>
+
+                                <div id="btns-guardar-{{v[0]}}" class="hidden flex justify-end gap-1">
+                                    <button onclick="guardarFila('{{v[0]}}')" class="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded shadow text-xs" title="Guardar">
+                                        <i class="ph ph-check font-bold"></i>
+                                    </button>
+                                    <button onclick="cancelarEdicion('{{v[0]}}')" class="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded shadow text-xs" title="Cancelar">
+                                        <i class="ph ph-x font-bold"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="p-8 text-center text-slate-400">Sin registros</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <div id="modal-upload-vis" class="fixed inset-0 bg-black/60 hidden backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-xl w-96 shadow-2xl">
+        <div class="bg-white p-6 rounded-xl w-96 shadow-2xl animate-fade-in-up">
             <h3 class="font-bold text-lg mb-2">Carga Masiva</h3>
-            <p class="text-xs text-slate-500 mb-4">El Excel debe tener columnas: NOMBRE, DNI, CORREO, INSTITUCION</p>
-            
             <div class="mb-3 flex justify-end">
-                <a href="/admin/plantilla/visitantes" class="text-xs font-bold text-orange-600 hover:text-orange-800 hover:underline flex items-center gap-1">
-                    <i class="ph ph-download-simple"></i> Descargar Modelo
-                </a>
+                <a href="/admin/plantilla/visitantes" class="text-xs font-bold text-orange-600 hover:underline">Descargar Plantilla</a>
             </div>
             <form id="form-excel-vis">
-                <input type="file" name="archivo_excel_vis" accept=".xlsx" class="w-full mb-4">
-                <div id="status-vis" class="text-sm mb-2 text-blue-600 hidden">Subiendo...</div>
+                <input type="file" name="archivo_excel_vis" accept=".xlsx" class="w-full mb-4 text-sm">
+                <div id="status-vis" class="text-sm mb-2 text-blue-600 hidden font-bold animate-pulse">Subiendo...</div>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="document.getElementById('modal-upload-vis').classList.add('hidden')" class="px-4 py-2 text-slate-500">Cancelar</button>
-                    <button type="submit" class="bg-slate-700 text-white px-4 py-2 rounded font-bold">Procesar</button>
+                    <button type="submit" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded font-bold">Procesar</button>
                 </div>
             </form>
         </div>
@@ -62,18 +144,115 @@
 
 {% block scripts %}
 <script>
-    // Lógica para guardar visitante manual
-    document.getElementById('form-visitante').addEventListener('submit', function(e){
+    // 1. GUARDADO NUEVO
+    document.getElementById('form-visitante').addEventListener('submit', async function(e){
         e.preventDefault();
-        // ... (Tu código fetch de /admin/agregar_visitante aquí) ...
-        alert("Función de guardar activada (Asegúrate de copiar el fetch del chat anterior)");
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '...'; btn.disabled = true;
+        const data = {
+            dni: document.getElementById('vis-dni').value,
+            nombre: document.getElementById('vis-nombre').value,
+            institucion: document.getElementById('vis-inst').value,
+            correo: document.getElementById('vis-correo').value
+        };
+        try {
+            const res = await fetch('/admin/agregar_visitante', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)});
+            if((await res.json()).status === 'success') window.location.reload(); else alert("Error al guardar");
+        } catch (err) { alert("Error conexión"); }
+        btn.disabled = false; btn.innerHTML = 'Guardar Nuevo';
     });
 
-    // Lógica para Excel
-    document.getElementById('form-excel-vis').addEventListener('submit', function(e){
+    // 2. EXCEL (Sin cambios)
+    document.getElementById('form-excel-vis').addEventListener('submit', async function(e){
         e.preventDefault();
-        // ... (Tu código fetch de /admin/subir_excel_visitantes aquí) ...
-        alert("Función de excel activada");
+        const fd = new FormData(this);
+        document.getElementById('status-vis').classList.remove('hidden');
+        try {
+            const res = await fetch('/admin/subir_excel_visitantes', { method: 'POST', body: fd });
+            if((await res.json()).status === 'success') window.location.reload(); else alert("Error en excel");
+        } catch (e) { alert("Error conexión"); }
+        document.getElementById('status-vis').classList.add('hidden');
     });
+
+    // 3. FUNCIONES DE EDICIÓN EN LÍNEA
+    
+    function activarEdicion(id) {
+        // Ocultar textos, mostrar inputs
+        toggleVisibilidad(id, true);
+    }
+
+    function cancelarEdicion(id) {
+        // Ocultar inputs, mostrar textos (sin guardar)
+        toggleVisibilidad(id, false);
+        // Opcional: Resetear valor del input al original si quieres deshacer cambios escritos
+    }
+
+    async function guardarFila(id) {
+        const dni = document.getElementById(`edit-dni-${id}`).value;
+        const nombre = document.getElementById(`edit-nom-${id}`).value;
+        const inst = document.getElementById(`edit-inst-${id}`).value;
+        const correo = document.getElementById(`edit-correo-${id}`).value;
+
+        // Feedback visual (deshabilitar botón)
+        const btnContainer = document.getElementById(`btns-guardar-${id}`);
+        btnContainer.innerHTML = '<span class="text-xs text-blue-600 font-bold">Guardando...</span>';
+
+        try {
+            const res = await fetch('/admin/editar_visitante', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id, dni, nombre, institucion: inst, correo })
+            });
+            const result = await res.json();
+
+            if(result.status === 'success') {
+                // Actualizar los textos visuales con los nuevos valores
+                document.getElementById(`ver-dni-${id}`).innerText = dni;
+                document.getElementById(`ver-nom-${id}`).innerText = nombre;
+                document.getElementById(`ver-inst-${id}`).innerText = inst;
+                document.getElementById(`ver-correo-${id}`).innerText = correo;
+
+                // Restaurar botones y salir de modo edición
+                alert("✅ Actualizado");
+                window.location.reload(); // Recargar para asegurar consistencia o simplemente toggleVisibilidad(id, false)
+            } else {
+                alert("❌ Error: " + result.msg);
+                window.location.reload(); // Restaurar estado
+            }
+        } catch (error) {
+            console.error(error);
+            alert("❌ Error de conexión");
+        }
+    }
+
+    // Helper para cambiar clases
+    function toggleVisibilidad(id, modoEdicion) {
+        const elementos = ['nom', 'dni', 'inst', 'correo'];
+        
+        elementos.forEach(el => {
+            const span = document.getElementById(`ver-${el}-${id}`);
+            const input = document.getElementById(`edit-${el}-${id}`);
+            if(modoEdicion) {
+                span.classList.add('hidden');
+                input.classList.remove('hidden');
+            } else {
+                span.classList.remove('hidden');
+                input.classList.add('hidden');
+            }
+        });
+
+        const btnEdit = document.getElementById(`btn-editar-${id}`);
+        const btnsGuardar = document.getElementById(`btns-guardar-${id}`);
+
+        if(modoEdicion) {
+            btnEdit.classList.add('hidden');
+            btnsGuardar.classList.remove('hidden');
+            // Poner foco en el nombre
+            document.getElementById(`edit-nom-${id}`).focus();
+        } else {
+            btnEdit.classList.remove('hidden');
+            btnsGuardar.classList.add('hidden');
+        }
+    }
 </script>
 {% endblock %}

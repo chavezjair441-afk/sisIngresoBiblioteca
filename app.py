@@ -178,9 +178,20 @@ def admin_dashboard():
 # RUTA NUEVA: PÁGINA DE VISITANTES
 @app.route('/admin/visitantes')
 def admin_visitantes_page():
-    # Si quieres mostrar una tabla de visitantes, haz el SELECT aquí
-    # Por ahora solo mostramos la página vacía con los botones
-    return render_template('admin_visitantes.html')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Consultamos ID, Nombre, DNI, Institucion, Correo
+    cursor.execute("""
+        SELECT VisitanteID, NombreCompleto, DNI, Institucion, Correo 
+        FROM Visitantes 
+        ORDER BY NombreCompleto ASC
+    """)
+    lista_visitantes = cursor.fetchall()
+    conn.close()
+
+    # Enviamos la lista a la plantilla
+    return render_template('admin_visitantes.html', visitantes=lista_visitantes)
 
 # SUBIDA DE EXCEL
 @app.route('/admin/subir_excel', methods=['POST'])
@@ -372,6 +383,39 @@ def agregar_visitante():
         """, (nombre, dni, correo, institucion))
         conn.commit()
         return jsonify({'status': 'success', 'msg': 'Visitante registrado correctamente.'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'msg': str(e)})
+    finally:
+        conn.close()
+
+# RUTA PARA ACTUALIZAR VISITANTE
+@app.route('/admin/editar_visitante', methods=['POST'])
+def editar_visitante():
+    data = request.json
+    id_vis = data.get('id')
+    dni = data.get('dni')
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    institucion = data.get('institucion')
+
+    if not id_vis or not dni or not nombre:
+        return jsonify({'status': 'error', 'msg': 'Faltan datos obligatorios'})
+
+    # Normalizar institución
+    if not institucion or institucion.strip() == "":
+        institucion = "Sin Institución"
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE Visitantes
+            SET NombreCompleto = ?, DNI = ?, Correo = ?, Institucion = ?
+            WHERE VisitanteID = ?
+        """, (nombre, dni, correo, institucion, id_vis))
+        
+        conn.commit()
+        return jsonify({'status': 'success', 'msg': 'Datos actualizados correctamente.'})
     except Exception as e:
         return jsonify({'status': 'error', 'msg': str(e)})
     finally:
