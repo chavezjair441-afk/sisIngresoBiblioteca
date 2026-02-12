@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Biblioteca UNDAC</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='logo.png') }}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-950 text-white h-screen flex flex-col items-center justify-center overflow-hidden font-sans select-none" onclick="focarInput()">
+
+    <div class="absolute top-10 left-10">
+        <h1 class="text-3xl font-bold tracking-widest text-sky-500">UNDAC</h1>
+        <p class="text-xs text-slate-500 uppercase tracking-widest mt-1">Biblioteca Central</p>
+    </div>
+    
+    <div class="absolute top-10 right-10 flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+        <span class="text-slate-600 font-mono text-sm uppercase">Terminal Piso {{ piso }}</span>
+    </div>
+
+    <div class="w-full max-w-4xl text-center p-8">
+        
+        <div id="pantalla-espera" class="transition-all duration-300">
+            <div class="mb-10">
+                <svg class="w-16 h-16 mx-auto text-slate-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4v1m6 11h2m-6 0h-2v4h-4v-4H8m13-4V7a1 1 0 00-1-1H4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </div>
+            <h2 class="text-6xl font-light text-slate-200 mb-4 tracking-tight">Bienvenido</h2>
+            <p class="text-slate-500 text-xl font-light">Acerque su carnet al lector para ingresar</p>
+            
+            <div class="mt-12 animate-bounce flex justify-center">
+                <svg class="w-16 h-16 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </div>
+            </div>
+
+        <div id="pantalla-resultado" class="hidden">
+            <div id="icono-estado" class="mb-8 flex justify-center"></div>
+            
+            <h2 id="texto-estado" class="text-5xl font-bold mb-4"></h2>
+            
+            <div id="datos-alumno" class="border-t border-slate-800 pt-6 mt-6 hidden">
+                <h3 id="nombre-alumno" class="text-3xl text-white font-semibold mb-2"></h3>
+                <div class="flex justify-center gap-4 text-sky-400 text-xl font-light">
+                    <span id="escuela-alumno"></span>
+                    <span>&bull;</span>
+                    <span id="semestre-alumno"></span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <input type="text" id="input-lector" class="opacity-0 absolute -z-10" autocomplete="off">
+
+    <script>
+        const input = document.getElementById('input-lector');
+        // Usamos Number() y comillas para evitar el error visual en VS Code
+        const piso = Number("{{ piso }}"); 
+        let timer;
+
+        // Mantener el foco siempre en el input invisible
+        function focarInput() { input.focus(); }
+        window.onload = focarInput;
+        input.addEventListener('blur', () => setTimeout(focarInput, 50));
+
+        // Detectar Enter (que envían los lectores de barras al final del código)
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const codigo = input.value.trim();
+                if (codigo) procesar(codigo);
+                input.value = '';
+            }
+        });
+
+        function procesar(codigo) {
+            fetch('/procesar_ingreso', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ codigo: codigo, piso: piso })
+            })
+            .then(res => res.json())
+            .then(data => mostrar(data))
+            .catch(err => console.error(err));
+        }
+
+        function mostrar(data) {
+            const espera = document.getElementById('pantalla-espera');
+            const resultado = document.getElementById('pantalla-resultado');
+            const txtEstado = document.getElementById('texto-estado');
+            const boxDatos = document.getElementById('datos-alumno');
+            const icono = document.getElementById('icono-estado');
+
+            // Cambio de pantalla
+            espera.classList.add('hidden');
+            resultado.classList.remove('hidden');
+            resultado.classList.add('fade-in');
+
+            if (data.status === 'success') {
+                // ÉXITO
+                txtEstado.innerText = "Acceso Permitido";
+                txtEstado.className = "text-5xl font-bold mb-4 text-emerald-400";
+                
+                // Rellenar datos
+                boxDatos.classList.remove('hidden');
+                document.getElementById('nombre-alumno').innerText = data.alumno;
+                document.getElementById('escuela-alumno').innerText = data.escuela;
+                document.getElementById('semestre-alumno').innerText = "Semestre " + data.semestre;
+
+                icono.innerHTML = `<svg class="w-32 h-32 text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            } else {
+                // ERROR
+                txtEstado.innerText = "No Registrado";
+                txtEstado.className = "text-5xl font-bold mb-4 text-rose-500";
+                boxDatos.classList.add('hidden');
+                
+                icono.innerHTML = `<svg class="w-32 h-32 text-rose-500 drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            }
+
+            // Temporizador para volver al inicio (4 segundos para leer)
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                resultado.classList.add('hidden');
+                espera.classList.remove('hidden');
+                resultado.classList.remove('fade-in');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

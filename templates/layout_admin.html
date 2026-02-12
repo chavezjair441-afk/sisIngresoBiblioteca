@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - UNDAC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='logo_2.png') }}" type="image/x-icon">
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden font-sans">
+
+    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-2xl shrink-0 transition-all z-20">
+        
+        <div class="p-6 border-b border-slate-800 flex flex-col items-center text-center">
+            <img src="{{ url_for('static', filename='logo_2.png') }}" alt="Logo Admin" class="w-16 h-16 mb-3 object-contain">
+            <h1 class="text-xl font-bold text-sky-500 tracking-widest">UNDAC</h1>
+            <p class="text-[10px] text-slate-500 uppercase tracking-wider">Panel de Supervisión</p>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+            
+            <div>
+                <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Control de Acceso</p>
+                <div class="space-y-1">
+                    <a href="/admin" class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {% if request.path == '/admin' %} bg-sky-600 text-white shadow-lg shadow-sky-900/20 {% else %} text-slate-400 hover:text-white hover:bg-slate-800 {% endif %}">
+                        <i class="ph ph-chart-bar text-lg"></i>
+                        <span class="text-sm font-medium">Dashboard</span>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Externos</p>
+                <div class="space-y-1">
+                    <a href="/admin/visitantes" class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all {% if request.path == '/admin/visitantes' %} bg-sky-600 text-white shadow-lg shadow-sky-900/20 {% else %} text-slate-400 hover:text-white hover:bg-slate-800 {% endif %}">
+                        <i class="ph ph-users-three text-lg"></i>
+                        <span class="text-sm font-medium">Gestión Visitantes</span>
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <p class="px-3 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Biblioteca</p>
+                <div class="space-y-1">
+                    <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-all">
+                        <i class="ph ph-books text-lg"></i>
+                        <span class="text-sm font-medium">Libros (Próx.)</span>
+                    </a>
+                </div>
+            </div>
+
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-900/50">
+            <button onclick="document.getElementById('modal-upload').classList.remove('hidden')" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-sky-600 hover:text-white text-slate-400 py-2.5 rounded-lg transition-all border border-slate-700 hover:border-sky-500 group">
+                <i class="ph ph-student text-lg group-hover:animate-bounce"></i>
+                <span class="text-xs font-bold uppercase">Subir Alumnos</span>
+            </button>
+        </div>
+
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+
+    <div id="modal-upload" class="fixed inset-0 bg-black/60 hidden backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
+            
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="ph ph-microsoft-excel-logo text-green-600 text-2xl"></i>
+                    Importar Alumnos
+                </h3>
+                <button onclick="document.getElementById('modal-upload').classList.add('hidden')" class="text-slate-400 hover:text-red-500">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <p class="text-sm text-slate-500 mb-4 leading-relaxed">
+                Sube el archivo Excel oficial de la universidad para actualizar la base de datos.
+            </p>
+            
+            <div class="mb-3 flex justify-end">
+                <a href="/admin/plantilla/alumnos" class="text-xs font-bold text-sky-600 hover:text-sky-800 hover:underline flex items-center gap-1">
+                    <i class="ph ph-download-simple"></i> Descargar Modelo Ejemplo
+                </a>
+            </div>
+
+            <form id="form-excel" class="space-y-4">
+                <div class="relative group">
+                    <input type="file" name="archivo_excel" accept=".xlsx" required 
+                           class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 cursor-pointer border border-dashed border-slate-300 rounded-lg p-2 group-hover:border-sky-400 transition-colors"/>
+                </div>
+
+                <div id="upload-status" class="hidden p-3 rounded-lg text-sm font-medium flex items-center gap-2"></div>
+
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-upload').classList.add('hidden')" class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold shadow-lg shadow-sky-600/20 transition-all flex items-center gap-2">
+                        <i class="ph ph-upload-simple text-lg"></i>
+                        Procesar Archivo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('form-excel').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const statusDiv = document.getElementById('upload-status');
+            const btn = this.querySelector('button[type="submit"]');
+            
+            // UI de carga
+            statusDiv.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+            statusDiv.classList.add('bg-blue-100', 'text-blue-700');
+            statusDiv.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Procesando base de datos...';
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            fetch('/admin/subir_excel', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                if (data.status === 'success') {
+                    statusDiv.className = 'p-3 rounded-lg text-sm bg-green-100 text-green-700 font-medium flex items-center gap-2';
+                    statusDiv.innerHTML = `<i class="ph ph-check-circle text-lg"></i> ${data.msg}`;
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    statusDiv.className = 'p-3 rounded-lg text-sm bg-red-100 text-red-700 font-medium flex items-center gap-2';
+                    statusDiv.innerHTML = `<i class="ph ph-warning-circle text-lg"></i> ${data.msg}`;
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                btn.disabled = false;
+                statusDiv.innerText = "Error de conexión";
+            });
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>
