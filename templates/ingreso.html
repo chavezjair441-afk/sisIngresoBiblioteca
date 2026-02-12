@@ -60,16 +60,13 @@
 
     <script>
         const input = document.getElementById('input-lector');
-        // Usamos Number() y comillas para evitar el error visual en VS Code
         const piso = Number("{{ piso }}"); 
         let timer;
 
-        // Mantener el foco siempre en el input invisible
         function focarInput() { input.focus(); }
         window.onload = focarInput;
         input.addEventListener('blur', () => setTimeout(focarInput, 50));
 
-        // Detectar Enter (que envían los lectores de barras al final del código)
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const codigo = input.value.trim();
@@ -96,39 +93,67 @@
             const boxDatos = document.getElementById('datos-alumno');
             const icono = document.getElementById('icono-estado');
 
-            // Cambio de pantalla
+            // Mostrar pantalla de resultado
             espera.classList.add('hidden');
             resultado.classList.remove('hidden');
             resultado.classList.add('fade-in');
 
-            if (data.status === 'success') {
-                // ÉXITO
-                txtEstado.innerText = "Acceso Permitido";
-                txtEstado.className = "text-5xl font-bold mb-4 text-emerald-400";
-                
-                // Rellenar datos
-                boxDatos.classList.remove('hidden');
-                document.getElementById('nombre-alumno').innerText = data.alumno;
-                document.getElementById('escuela-alumno').innerText = data.escuela;
-                document.getElementById('semestre-alumno').innerText = "Semestre " + data.semestre;
+            // Limpiar clases de colores previos
+            txtEstado.className = "text-5xl font-bold mb-4";
 
+            // --- LÓGICA DE VISUALIZACIÓN ---
+
+            if (data.status === 'success') {
+                // VERDE: Acceso Correcto
+                txtEstado.innerText = "Acceso Permitido";
+                txtEstado.classList.add("text-emerald-400");
                 icono.innerHTML = `<svg class="w-32 h-32 text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-            } else {
-                // ERROR
-                txtEstado.innerText = "No Registrado";
-                txtEstado.className = "text-5xl font-bold mb-4 text-rose-500";
-                boxDatos.classList.add('hidden');
                 
+                // Mostrar Datos
+                llenarDatos(data);
+
+            } else if (data.status === 'warning') {
+                // AMARILLO: Ya registrado (PERO MUESTRA DATOS)
+                txtEstado.innerText = data.msg; // "YA REGISTRADO..."
+                txtEstado.classList.add("text-yellow-400");
+                icono.innerHTML = `<svg class="w-32 h-32 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+                
+                // Mostrar Datos (Esto es lo que pediste)
+                llenarDatos(data);
+
+            } else {
+                // ROJO: Error / No encontrado
+                txtEstado.innerText = data.msg || "No Registrado";
+                txtEstado.classList.add("text-rose-500");
                 icono.innerHTML = `<svg class="w-32 h-32 text-rose-500 drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                
+                // Ocultar caja de datos
+                boxDatos.classList.add('hidden');
             }
 
-            // Temporizador para volver al inicio (4 segundos para leer)
+            // Temporizador para volver
             clearTimeout(timer);
             timer = setTimeout(() => {
                 resultado.classList.add('hidden');
                 espera.classList.remove('hidden');
                 resultado.classList.remove('fade-in');
-            }, 4000);
+            }, 4000); // 4 segundos
+        }
+
+        function llenarDatos(data) {
+            const boxDatos = document.getElementById('datos-alumno');
+            boxDatos.classList.remove('hidden');
+            
+            document.getElementById('nombre-alumno').innerText = data.alumno || "Sin Nombre";
+            document.getElementById('escuela-alumno').innerText = data.escuela || "Externo";
+            
+            const sem = document.getElementById('semestre-alumno');
+            if (data.semestre && data.semestre !== 'EXTERNO') {
+                sem.innerText = "Semestre " + data.semestre;
+                sem.style.display = 'inline';
+            } else {
+                sem.style.display = 'none';
+            }
         }
     </script>
 </body>

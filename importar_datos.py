@@ -3,7 +3,6 @@ import pyodbc
 import os
 from dotenv import load_dotenv
 
-# 1. Cargar configuración
 load_dotenv()
 
 def get_db_connection():
@@ -19,85 +18,104 @@ def get_db_connection():
         print(f"Error conectando a SQL: {e}")
         return None
 
+# --- FUNCIONES HELPER PARA OBTENER IDs ---
+def obtener_id_facultad(cursor, nombre_facultad):
+    if not nombre_facultad: return None
+    cursor.execute("SELECT FacultadID FROM Facultades WHERE NombreFacultad = ?", (nombre_facultad,))
+    row = cursor.fetchone()
+    if row: return row[0]
+    # Si no existe, crear
+    cursor.execute("INSERT INTO Facultades (NombreFacultad) VALUES (?)", (nombre_facultad,))
+    cursor.execute("SELECT SCOPE_IDENTITY()")
+    return cursor.fetchone()[0]
+
+def obtener_id_escuela(cursor, nombre_escuela, facultad_id):
+    if not nombre_escuela: return None
+    cursor.execute("SELECT EscuelaID FROM Escuelas WHERE NombreEscuela = ?", (nombre_escuela,))
+    row = cursor.fetchone()
+    if row: return row[0]
+    # Si no existe, crear
+    cursor.execute("INSERT INTO Escuelas (NombreEscuela, FacultadID) VALUES (?, ?)", (nombre_escuela, facultad_id))
+    cursor.execute("SELECT SCOPE_IDENTITY()")
+    return cursor.fetchone()[0]
+
+def obtener_id_semestre(cursor, nombre_semestre):
+    if not nombre_semestre: return None
+    # Normalizar semestre (evitar duplicados por espacios)
+    nombre_semestre = str(nombre_semestre).strip().upper()
+    cursor.execute("SELECT SemestreID FROM Semestres WHERE NombreSemestre = ?", (nombre_semestre,))
+    row = cursor.fetchone()
+    if row: return row[0]
+    # Si no existe, crear
+    cursor.execute("INSERT INTO Semestres (NombreSemestre) VALUES (?)", (nombre_semestre,))
+    cursor.execute("SELECT SCOPE_IDENTITY()")
+    return cursor.fetchone()[0]
+
 def cargar_excel():
     archivo = 'lista_alumnos.xlsx'
-    
-    # Verificamos si existe el archivo
     if not os.path.exists(archivo):
-        print(f"❌ No encuentro el archivo '{archivo}'. Asegúrate de ponerlo en la misma carpeta.")
+        print(f"❌ No encuentro '{archivo}'")
         return
 
-    print("📂 Leyendo archivo Excel... esto puede tardar unos segundos...")
-    
-    # LEEMOS EL EXCEL
-    # dtype={'DNI': str} es VITAL para que no borre los ceros a la izquierda (ej: 060...)
+    print("📂 Leyendo Excel...")
     try:
         df = pd.read_excel(archivo, dtype={'DNI': str, 'CODIGO DE MATRICULA': str, 'SEMESTRE': str})
+        df = df.fillna('')
     except Exception as e:
-        print(f"❌ Error leyendo el Excel: {e}")
+        print(f"❌ Error Excel: {e}")
         return
-
-    # Limpieza de datos básica (rellenar vacíos con texto vacío para no dar error en SQL)
-    df = df.fillna('')
 
     conn = get_db_connection()
-    if not conn:
-        return
-
+    if not conn: return
     cursor = conn.cursor()
-    total_insertados = 0
-    total_errores = 0
     
-    print(f"🚀 Iniciando carga de {len(df)} alumnos...")
+    total = 0
+    print(f"🚀 Procesando {len(df)} alumnos...")
 
-    # RECORREMOS CADA FILA DEL EXCEL
-    for index, row in df.iterrows():
+    for _, row in df.iterrows():
         try:
-            # Mapeamos las columnas del Excel (Izquierda) a variables
-            nombre = row['APELLIDOS Y NOMBRE']
-            dni = row['DNI']
-            codigo = row['CODIGO DE MATRICULA']
-            correo_inst = row['CORREO INSTITUCIONAL']
-            correo_pers = row['CORREO PERSONAL']
-            escuela = row['ESCUELA']
-            facultad = row['FACULTAD']
-            semestre = row['SEMESTRE']
+            nombre = row.get('APELLIDOS Y NOMBRE', '')
+            dni = str(row.get('DNI', '')).strip()
+            codigo = str(row.get('CODIGO DE MATRICULA', '')).strip()
+            escuela_txt = row.get('ESCUELA', '')
+            facultad_txt = row.get('FACULTAD', '')
+            semestre_txt = row.get('SEMESTRE', '')
+            
+            # --- LA MAGIA: OBTENER IDs EN LUGAR DE TEXTO ---
+            fac_id = obtener_id_facultad(cursor, facultad_txt)
+            esc_id = obtener_id_escuela(cursor, escuela_txt, fac_id)
+            sem_id = obtener_id_semestre(cursor, semestre_txt)
 
-            # Validar que tenga DNI (si la fila está vacía, la saltamos)
-            if not dni or len(str(dni).strip()) == 0:
-                continue
+            if not dni: continue
 
-            # Query de Inserción
-            # Usamos una validación simple en SQL para no insertar si ya existe el DNI
-            sql = """
-            IF NOT EXISTS (SELECT 1 FROM Alumnos WHERE DNI = ?)
-            BEGIN
-                INSERT INTO Alumnos (NombreCompleto, DNI, CodigoMatricula, CorreoInstitucional, CorreoPersonal, Escuela, Facultad, Semestre)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            END
-            """
+            # Insertar o Actualizar usando IDs
+            # Verificamos si existe el DNI
+            cursor.execute("SELECT AlumnoID FROM Alumnos WHERE DNI = ?", (dni,))
+            existe = cursor.fetchone()
+
+            if existe:
+                # Actualizar referencias
+                cursor.execute("""
+                    UPDATE Alumnos 
+                    SET NombreCompleto=?, EscuelaID=?, SemestreID=?
+                    WHERE DNI=?
+                """, (nombre, esc_id, sem_id, dni))
+            else:
+                # Insertar nuevo con IDs
+                cursor.execute("""
+                    INSERT INTO Alumnos (NombreCompleto, DNI, CodigoMatricula, EscuelaID, SemestreID, Estado)
+                    VALUES (?, ?, ?, ?, ?, 1)
+                """, (nombre, dni, codigo, esc_id, sem_id))
             
-            cursor.execute(sql, (dni, nombre, dni, codigo, correo_inst, correo_pers, escuela, facultad, semestre))
-            
-            # Si se insertó una fila, aumentamos contador (cursor.rowcount nos dice cuántas filas afectó)
-            if cursor.rowcount > 0:
-                total_insertados += 1
-                # Imprimir progreso cada 50 alumnos
-                if total_insertados % 50 == 0:
-                    print(f"   ✅ Van {total_insertados} alumnos...")
-            
+            total += 1
+            if total % 50 == 0: print(f"   ✅ {total} procesados...")
+
         except Exception as e:
-            print(f"⚠️ Error en fila {index + 2} (DNI: {dni}): {e}")
-            total_errores += 1
+            print(f"⚠️ Error en DNI {dni}: {e}")
 
     conn.commit()
     conn.close()
-
-    print("\n" + "="*40)
-    print(f"🏁 PROCESO TERMINADO")
-    print(f"✅ Insertados correctamente: {total_insertados}")
-    print(f"⚠️ Duplicados o Errores:    {total_errores}")
-    print("="*40)
+    print("🏁 Carga completada.")
 
 if __name__ == '__main__':
     cargar_excel()
